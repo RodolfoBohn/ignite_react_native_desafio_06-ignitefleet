@@ -1,4 +1,4 @@
-import { createRealmContext } from '@realm/react'
+import { Realm, createRealmContext } from '@realm/react'
 import { Historic } from './schemas/historic'
 
 export const {
@@ -9,3 +9,13 @@ export const {
 } = createRealmContext({
   schema: [Historic]
 })
+
+const realmAccessBehavior: Realm.OpenRealmBehaviorConfiguration = {
+  type: Realm.OpenRealmBehaviorType.OpenImmediately
+}
+
+export const syncConfig: any = {
+  flexible: true,
+  newRealmFileBehavior: realmAccessBehavior,
+  existingRealmFileBehavior: realmAccessBehavior, 
+}

@@ -2,13 +2,13 @@ import { Container, Content, Label, Title } from "./styles";
 import { HomeHeader } from "../../components/HomeHeader";
 import { CarStatus } from "../../components/CarStatus";
 import { useNavigation } from "@react-navigation/native";
-import { useQuery } from "../../libs/realm";
 import { Historic } from "../../libs/realm/schemas/historic";
 import { useEffect, useState } from "react";
 import { Alert, FlatList } from "react-native";
-import { useRealm } from "../../libs/realm";
+import { useRealm, useQuery } from "../../libs/realm";
 import { HistoricCard, HistoricCardProps } from "../../components/HistoricCard";
 import dayjs from "dayjs";
+import { useUser } from "@realm/react";
 
 export function Home() {
   const [vehicleHistoric, setVehicleHistoric] = useState<HistoricCardProps[]>([]);
@@ -16,6 +16,7 @@ export function Home() {
   const navigation = useNavigation()
   const historic = useQuery(Historic)
   const realm = useRealm()
+  const user = useUser()
 
   function handleRegisterMovement() {
     if(vehicleInUse?._id) {
@@ -74,6 +75,21 @@ export function Home() {
   useEffect(() => {
     fetchHistoric()
   }, [historic])
+
+  function fetchRemoteData() {
+    try {
+      realm.subscriptions.update((mutableSubs, realm) => {
+      const historicByUserQuery = realm.objects('Historic').filtered(`user_id = '${user!.id}'`);
+        mutableSubs.add(historicByUserQuery);
+      })
+    } catch(error) {
+      console.log(error)
+    }
+  }
+
+  useEffect(() => {
+    fetchRemoteData()
+  },[realm]);
 
   return (
       <Container>
