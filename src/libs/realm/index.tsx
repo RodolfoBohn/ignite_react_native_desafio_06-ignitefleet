@@ -1,4 +1,5 @@
-import { Realm, createRealmContext } from '@realm/react'
+import Realm from 'realm'
+import { createRealmContext } from '@realm/react'
 import { Historic } from './schemas/historic'
 
 export const {
@@ -8,6 +9,7 @@ export const {
   useQuery
 } = createRealmContext({
   schema: [Historic]
+  
 })
 
 const realmAccessBehavior: Realm.OpenRealmBehaviorConfiguration = {

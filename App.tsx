@@ -11,10 +11,13 @@ import {AppProvider, UserProvider} from '@realm/react'
 import { Routes } from './src/routes';
 import {SafeAreaProvider} from 'react-native-safe-area-context'
 import { RealmProvider, syncConfig } from './src/libs/realm';
-import { Historic } from './src/libs/realm/schemas/historic';
+import { TopMessage } from './src/components/TopMessage';
+import { WifiSlash } from 'phosphor-react-native';
+import { useNetInfo } from '@react-native-community/netinfo';
 
 export default function App() {
   const [fontsLoaded] = useFonts({Roboto_400Regular, Roboto_700Bold})
+  const netInfo = useNetInfo()
   if(!fontsLoaded) {
     return (
       <Loading />
@@ -30,6 +33,13 @@ export default function App() {
             backgroundColor="transparent" 
             translucent 
           />
+          {
+          !netInfo.isConnected &&
+          <TopMessage 
+            title='Você está off-line'
+            icon={WifiSlash}
+          />
+          }
           <UserProvider fallback={SignIn} >
             <RealmProvider sync={syncConfig} fallback={Loading}>
               <Routes />
