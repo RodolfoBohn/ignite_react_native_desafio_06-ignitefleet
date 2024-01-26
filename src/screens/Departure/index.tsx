@@ -1,10 +1,10 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "../../components/Button"
 import { Header } from "../../components/Header"
 import { LicensePlateInput } from "../../components/LicensePlateInput"
 import { TextAreaInput } from "../../components/TextAreaInput"
-import { Container, Content } from "./styles"
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, TextInput } from "react-native"
+import { Container, Content, Message } from "./styles"
+import { Alert, Platform, ScrollView, TextInput } from "react-native"
 import { licensePlateValidate } from "../../utils/licensePlateValidate"
 
 import { useRealm } from "../../libs/realm"
@@ -12,15 +12,26 @@ import { useUser } from "@realm/react"
 import { useNavigation } from "@react-navigation/native"
 import { Historic } from "../../libs/realm/schemas/historic"
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view"
+import {useForegroundPermissions, watchPositionAsync, LocationAccuracy, LocationSubscription, LocationObjectCoords} from 'expo-location'
+import { getAddressLocation } from "../../utils/getAddressLocation"
+import { Loading } from "../../components/Loading"
+import { LocationInfo } from "../../components/LocationInfo"
+import { Car } from "phosphor-react-native"
+import { Map } from "../../components/Map"
 
 const keyboardAvoidingViewBehavior = Platform.OS === 'android' ? 'height' : 'position'
 
 export function Departure() {
   const [plate, setPlate] = useState("")
   const [description, setDesctiption] = useState("")
+  const [currentLocation, setCurrentLocation] = useState<string | null>(null)
+  const [isLocationLoading, setIsLocationLoading] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
+  const [currentCoords, setCurrentCoords] = useState<LocationObjectCoords | null>(null)
   const descriptionRef = useRef<TextInput>(null)
   const plateRef = useRef<TextInput>(null)
+
+  const [locationForegroundPermission, requestLocationForegroundPermission] = useForegroundPermissions()
 
   const realm = useRealm()
   const user = useUser()
@@ -56,6 +67,50 @@ export function Departure() {
     }
   }
 
+  useEffect(() => {
+    requestLocationForegroundPermission()
+  },[])
+
+  useEffect(() => {
+    if(!locationForegroundPermission?.granted){
+      return
+    }
+
+    let subscription: LocationSubscription
+
+    watchPositionAsync({
+        accuracy: LocationAccuracy.High, 
+        timeInterval: 1000
+      }, 
+      (location) => {
+        setCurrentCoords(location.coords)
+        getAddressLocation(location.coords)
+          .then((address) => address && setCurrentLocation(address))
+          .catch((error) => setIsLocationLoading(false))
+          .finally(() => setIsLocationLoading(false))
+    })
+    .then((response) => subscription = response)
+
+    return () => subscription?.remove()
+  },[locationForegroundPermission])
+
+  if(isLocationLoading) {
+    return <Loading />
+  }
+
+  if(!locationForegroundPermission?.granted) {
+    return (
+      <Container>
+        <Header title="Saída" />
+        <Message>
+          Você precisa permitir que o aplicativo tenha acesso a 
+          localização para acessar essa funcionalidade. Por favor, acesse as
+          configurações do seu dispositivo para conceder a permissão ao aplicativo.
+        </Message>
+      </Container>
+    )
+  }
+
   return (
     <Container>
       <Header title="Saída" />
@@ -63,7 +118,17 @@ export function Departure() {
       {/* <KeyboardAvoidingView behavior={keyboardAvoidingViewBehavior} style={{flex: 1}}> */}
       <KeyboardAwareScrollView extraHeight={200}>
         <ScrollView>
+          {currentCoords && <Map coordinates={[currentCoords]} />}
+          
           <Content>
+            {
+              currentLocation &&
+              <LocationInfo 
+                icon={Car}
+                label="Localização atual"
+                description={currentLocation}
+              />
+            }
             <LicensePlateInput
               ref={plateRef}
               label="Placa do veículo"
