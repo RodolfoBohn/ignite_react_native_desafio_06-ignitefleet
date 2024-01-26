@@ -12,12 +12,20 @@ import { useUser } from "@realm/react"
 import { useNavigation } from "@react-navigation/native"
 import { Historic } from "../../libs/realm/schemas/historic"
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view"
-import {useForegroundPermissions, watchPositionAsync, LocationAccuracy, LocationSubscription, LocationObjectCoords} from 'expo-location'
+import {
+  useForegroundPermissions, 
+  watchPositionAsync, 
+  LocationAccuracy, 
+  LocationSubscription,
+  LocationObjectCoords, 
+  requestBackgroundPermissionsAsync
+} from 'expo-location'
 import { getAddressLocation } from "../../utils/getAddressLocation"
 import { Loading } from "../../components/Loading"
 import { LocationInfo } from "../../components/LocationInfo"
 import { Car } from "phosphor-react-native"
 import { Map } from "../../components/Map"
+import { startLocationTask } from "../../tasks/backgroundLocationTask"
 
 const keyboardAvoidingViewBehavior = Platform.OS === 'android' ? 'height' : 'position'
 
@@ -37,7 +45,7 @@ export function Departure() {
   const user = useUser()
   const {goBack} = useNavigation()
 
-  function handleDepartureRegister() {
+  async function handleDepartureRegister() {
     try {
       setIsLoading(true)
       if(!licensePlateValidate(plate)) {
@@ -49,6 +57,13 @@ export function Departure() {
         descriptionRef.current?.focus()
         return Alert.alert("Finalidade", "Por favor informe a finalidade da utilização do veículo.")
       }
+
+      const backgroundPermissions = await requestBackgroundPermissionsAsync()
+      if (!backgroundPermissions.granted) {
+        return Alert.alert("Localização", "É necessário permitir o acesso a localização em segundo plano.")
+      }
+
+      await startLocationTask()
 
       realm.write(() => {
         realm.create('Historic', Historic.generate({

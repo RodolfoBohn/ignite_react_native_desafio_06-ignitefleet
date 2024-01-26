@@ -9,6 +9,7 @@ import { useObject, useRealm } from "../../libs/realm";
 import { Historic } from "../../libs/realm/schemas/historic";
 import { BSON } from "realm";
 import { Alert } from "react-native";
+import { stopLocationTask } from "../../tasks/backgroundLocationTask";
 
 interface RouteParamsProps {
   id: string
@@ -44,11 +45,13 @@ export function Arrival() {
     goBack()
   }
 
-  function handleArrivalVehicle() {
+  async function handleArrivalVehicle() {
     try {
       if(!historic) {
         return Alert.alert("Chegada", "Não foi possível buscar os dados para registrar a chegada do veículo.")
       }
+      await stopLocationTask()
+
       realm.write(() => {
         historic.status = 'arrival' 
         historic.updated_at = new Date()
